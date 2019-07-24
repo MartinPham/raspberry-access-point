@@ -1,0 +1,11 @@
+SOURCE="b8:27:eb:13:01:71"
+
+AP=ZZZ-AP
+PASSWD=password
+
+NAT=false
+
+SINGLE=false
+
+DNS1=8.8.8.8
+DNS2=8.8.4.4
