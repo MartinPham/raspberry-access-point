@@ -2,7 +2,7 @@ CLIENT="wlan0"
 AP="wlan1"
 
 SSID=ZZZ-AP
-PASSWORD=minhminh
+PASSWORD=passwordhere
 
 NAT=false
 
