@@ -1,26 +1,5 @@
 . ./config.txt
 
-WLAN0=$(cat /sys/class/net/wlan0/address)
-WLAN1=$(cat /sys/class/net/wlan1/address)
-
-echo "source $SOURCE"
-echo "wlan0 $WLAN0"
-echo "wlan1 $WLAN1"
-
-if [ "$WLAN1" = "$SOURCE" ]; then
-	echo "wlan1 as source"
-	WLAN=wlan0
-	ETH=wlan1
-else
-	echo "wlan0 as source"
-	echo ""
-	WLAN=wlan1
-	ETH=wlan0
-fi
-
-echo "wlan -> $WLAN"
-echo "eth -> $ETH"
-
 
 
 if test -d /etc/NetworkManager; then
@@ -32,13 +11,13 @@ if test -d /etc/NetworkManager; then
 		plugins=keyfile
 
 		[keyfile]
-		unmanaged-devices=interface-name:$WLAN
+		unmanaged-devices=interface-name:$AP
 	EOF
 
 	echo "Restarting NetworkManager..."
 	sudo service network-manager restart
 fi
-sudo ifconfig $WLAN up
+sudo ifconfig $AP up
 
 echo "Backing up /etc/dnsmasq.conf..."
 sudo cp /etc/dnsmasq.conf /etc/dnsmasq.conf.backup
@@ -61,7 +40,7 @@ cat <<- EOF >/etc/dnsmasq.conf
 	# disables dnsmasq reading any other files like /etc/resolv.conf for nameservers
 	no-resolv
 	# Interface to bind to
-	interface=$WLAN
+	interface=$AP
 	#Specify starting_range,end_range,lease_time
 	dhcp-range=$DHCPRANGE
 
@@ -72,23 +51,23 @@ EOF
 
 echo "Writing hostapd config file..."
 cat <<- EOF >/etc/hostapd/hostapd.conf
-	interface=$WLAN
+	interface=$AP
 	driver=nl80211
-	ssid=$AP
+	ssid=$SSID
 	hw_mode=g
 	channel=1
 	macaddr_acl=0
 	auth_algs=1
 	ignore_broadcast_ssid=0
 	wpa=2
-	wpa_passphrase=$PASSWD
+	wpa_passphrase=$PASSWORD
 	wpa_key_mgmt=WPA-PSK
 	wpa_pairwise=TKIP
 	rsn_pairwise=CCMP
 EOF
 
 echo "Configuring AP interface..."
-sudo ifconfig $WLAN up 10.10.10.1 netmask 255.255.255.0
+sudo ifconfig $AP up 10.10.10.1 netmask 255.255.255.0
 echo "Applying iptables rules..."
 sudo iptables --flush
 sudo iptables --table nat --flush
@@ -97,11 +76,11 @@ sudo iptables --table nat --delete-chain
 
 if [ $NAT = "true" ]; then
 	echo "NAT enabled"
-	sudo iptables --table nat --append POSTROUTING --out-interface $ETH -j MASQUERADE
+	sudo iptables --table nat --append POSTROUTING --out-interface $CLIENT -j MASQUERADE
 else
 	echo "NAT disabled"
 fi
-sudo iptables --append FORWARD --in-interface $WLAN -j ACCEPT
+sudo iptables --append FORWARD --in-interface $AP -j ACCEPT
 
 echo "Starting DNSMASQ server..."
 sudo /etc/init.d/dnsmasq stop > /dev/null 2>&1
@@ -110,10 +89,10 @@ sudo dnsmasq
 
 sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null 2>&1
 
-sudo ip route add 255.255.255.255 dev $WLAN
+sudo ip route add 255.255.255.255 dev $AP
 
 
-echo "Starting AP on $WLAN in screen terminal..."
+echo "Starting AP on $AP..."
 sudo hostapd /etc/hostapd/hostapd.conf
 
 if test -d /etc/NetworkManager; then
