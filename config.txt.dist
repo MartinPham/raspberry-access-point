@@ -1,7 +1,8 @@
-SOURCE="b8:27:eb:13:01:71"
+CLIENT="wlan0"
+AP="wlan1"
 
-AP=ZZZ-AP
-PASSWD=password
+SSID=ZZZ-AP
+PASSWORD=minhminh
 
 NAT=false
 
