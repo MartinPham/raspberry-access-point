@@ -1,4 +1,3 @@
-
 bold=$(tput bold)
 normal=$(tput sgr0)
 screen_minor=`screen --version | cut -d . -f 2`
@@ -15,9 +14,7 @@ fi
 
 
 
-echo "======================================================"
-echo "  Starting AP in a screen"
+echo "Starting AP"
 $screen_with_log ap.log -S ap -m -d ./ap.sh
-echo "======================================================"
 
 #tail -f ./ap.log
