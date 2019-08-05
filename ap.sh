@@ -1,6 +1,24 @@
 . ./config.txt
 
+cat <<- EOF >/etc/dhcpd-ap.conf
+interface $AP
+static ip_address=10.10.10.1/24
+nohook wpa_supplicant
+EOF
 
+sed -i 's/interface.*#@ap//g' /etc/dhcpcd.conf
+sed -i 's/static.*#@ap//g' /etc/dhcpcd.conf
+sed -i 's/nohook.*#@ap//g' /etc/dhcpcd.conf
+
+echo "Add dhcpcd rule"
+cat <<EOT >> /etc/dhcpcd.conf
+interface $AP #@ap
+static ip_address=10.10.10.1/24 #@ap
+nohook wpa_supplicant #@ap
+EOT
+
+systemctl daemon-reload
+service dhcpcd restart
 
 if test -d /etc/NetworkManager; then
 	echo "Backing up NetworkManager.cfg..."
@@ -77,10 +95,12 @@ sudo iptables --table nat --delete-chain
 if [ $NAT = "true" ]; then
 	echo "NAT enabled"
 	sudo iptables --table nat --append POSTROUTING --out-interface $CLIENT -j MASQUERADE
+	sudo iptables -A FORWARD -i $CLIENT -o $AP -m state --state RELATED,ESTABLISHED -j ACCEPT
+	sudo iptables -A FORWARD -i $AP -o $CLIENT -j ACCEPT
 else
 	echo "NAT disabled"
 fi
-sudo iptables --append FORWARD --in-interface $AP -j ACCEPT
+#sudo iptables --append FORWARD --in-interface $AP -j ACCEPT
 
 echo "Starting DNSMASQ server..."
 sudo /etc/init.d/dnsmasq stop > /dev/null 2>&1
@@ -102,6 +122,13 @@ if test -d /etc/NetworkManager; then
 fi
 sudo /etc/init.d/dnsmasq stop > /dev/null 2>&1
 sudo pkill dnsmasq
+
+sed -i 's/interface.*#@ap//g' /etc/dhcpcd.conf 
+sed -i 's/static.*#@ap//g' /etc/dhcpcd.conf 
+sed -i 's/nohook.*#@ap//g' /etc/dhcpcd.conf 
+systemctl daemon-reload
+service dhcpcd restart
+
 sudo rm /etc/dnsmasq.conf > /dev/null 2>&1
 sudo mv /etc/dnsmasq.conf.backup /etc/dnsmasq.conf > /dev/null 2>&1
 sudo rm /etc/dnsmasq.hosts > /dev/null 2>&1
